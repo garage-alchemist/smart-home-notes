@@ -4,7 +4,9 @@
 wird ignoriert, taktet, Softstart, Gradientenüberwachung, HG09, HG16, HG39, short cycling, court-cycle,
 chaudière Wolf démarre toutes les 7 minutes.*
 
-Status: **diagnosis proven (03/11), fix (HG16) under evaluation.** Updated as data comes in.
+Status (03/11): **mechanism proven** (too little water flow through the boiler → safety stop after ~15 s,
+no anti-cycling lock). **HG16 = 80 % helps only partly** (2 good cycles out of 9). Root cause of the low
+flow still open: closed mixer valve without bypass *or* a fouled heat exchanger. Updated as data comes in.
 
 ## TL;DR
 
@@ -20,7 +22,8 @@ Status: **diagnosis proven (03/11), fix (HG16) under evaluation.** Updated as da
   normal control shutdown, so **HG09 never applies**. This is why raising HG09 changed nothing.
 - Fix under test: **HG16 (minimum boiler pump speed) 50 % → 80 %**. First cycles afterwards: flames of
   40 s and 3 min 50 s ending with a normal control stop **followed by a real 15 min lock**, instead of
-  15 s safety stops. In the first 45 min, 2 of 4 cycles were still 15 s stops → evaluation continues.
+  15 s safety stops. But over the next 1.5 h, **7 of 9 cycles were still 15 s stops** → pump speed alone is not
+  enough; something restricts the flow (see "Where is the flow blocked?").
 
 ## The system
 
@@ -64,6 +67,7 @@ and were cross-checked on this boiler against parameters whose value is known fr
 | **Burner status** | **10068** | `5427` | enum | live |
 | **Operating mode** | **10067** | `5327` | enum | live |
 | Pump speed (actual) | 10071 | `5727` | % | live |
+| Burner controller firmware | 410 | `9a01` | signed /100 | 2.20 |
 
 Lines added to `08..hc.csv` (reads only; the leading `00` byte is fine for reads):
 
@@ -74,6 +78,7 @@ r,,,Hg60,HG 60 - Minimale Schalthysterese Brenner (2-30) TN 10808,,,5022,00382a,
 r,,,Brennerstatus,Brennerstatus TN 10068,,,5022,005427,value,,UIN,0=Aus;1=Ruhekontakt;2=Vorspuelen;3=Zuenden;4=Stabilisierung;5=Ein;6=Ventilpruefung;7=Nachspuelen;8=Softstart;9=Taktsperre;10=Betrieb_ohne_Brenner;11=Abgasklappe;12=Stoerung;13=Gradienten_Ueberwachung;14=Gasdruck;15=Spreizung_hoch;16=Spreizung_KF,,
 r,,,Betriebsart,Betriebsart der Therme TN 10067,,,5022,005327,value,,UIN,0=Test;1=Start;2=Frost_Heizkreis;3=Frost_Warmwasser;4=Schornsteinfeger;5=Kombibetrieb;6=Parallelbetrieb;7=Warmwasser;8=Warmwassernachlauf;9=Mindest_Kombizeit;10=Heizbetrieb;11=Nachlauf_Heizkreispumpe;12=Frostschutz;13=Standby;14=Kaskadenbetrieb;15=GLT_Betrieb;16=Kalibration;17=Kalibration_Heizbetrieb;18=Kalibration_Warmwasserbetrieb;19=Kalibration_Kombibetrieb;20=Warmwasser_Schnellstart;21=Externe_Deaktivierung;22=Durchfluss_gering,,
 r,,,Pumpspeed,Drehzahl Heizkreispumpe TN 10071,,,5022,005727,value,,UIN,,%,percent
+r,,,Firmware,Firmware Feuerungsautomat TN 410,,,5022,009a01,value,,SIN,100,,
 ```
 
 `ebusctl reload` is enough to load them — no App restart.
@@ -112,6 +117,15 @@ No error code on the bus (E000). A 15 s flame is too short for the 3–4 s polli
 | 10:05 | ~15 s | safety-type stop | Aus (no lock) |
 | 10:12 | **~3 min 50 s**, reached *Ein* (modulating) | control stop | Taktsperre (15:02) |
 | 10:31 | ~16 s | safety-type stop | Aus (no lock) |
+| 10:38, 10:46, 10:53, 11:01, 11:08 | 13–16 s each | safety-type stop | Aus (no lock), restart ~7.3 min later |
+
+What separates good from bad cycles (same 80 % pump command): in the good ones the flow sensor starts
+rising **7–11 s after ignition**; in the bad ones it does not move during the flame and the heat shows up
+15–30 s *after* it. So the **actual flow varies from cycle to cycle** while the pump command does not.
+During all short cycles the mixer motor was idle and the mixed flow was at its setpoint (slab satisfied).
+
+During the good 10:12 cycle: flow 41.5 °C, return 25 °C (ΔT ≈ 16.5 K) at roughly 3.5 kW →
+**≈ 180 L/h at 80 % pump**, far below what the internal pump delivers into an open circuit.
 
 The same fix is reported in a [haustechnikdialog thread](https://www.haustechnikdialog.de/Forum/t/260260/Wolf-CGB-2-14-taktet-58-800-x-in-26-000-Std-)
 (CGB-2-14, underfloor heating, 58 800 starts in 3 years): HG16 55 % still dropped into the lock after
@@ -120,6 +134,26 @@ soft-start; HG16 80 % / HG17 100 % made it run properly.
 Why it works: more flow through the exchanger carries the soft-start heat away instead of letting it
 build up in 1.3 L of water. Why it may not be enough: if the mixer valve is nearly closed and the
 hydraulics have no bypass/low-loss header, extra pump head only buys a little extra flow.
+
+### Where is the flow blocked? (open)
+
+| Hypothesis | Where | Remedy |
+|---|---|---|
+| A. Mixer valve nearly closed and no bypass / low-loss header | heating side | bypass or differential-pressure valve; or block the burner via E1 when room valves take little water |
+| B. Fouled heat exchanger / sludge (untreated fill water) | inside the boiler | exchanger cleaning, flushing, treated water, magnetic dirt separator |
+
+Hypothesis B comes from a [haustechnikdialog thread](https://www.haustechnikdialog.de/Forum/t/228535/Wolf-CGB-2-14-von-Softstart-in-Taktsperre)
+(CGB-2-14, underfloor, 2016 house): raising the pump did nothing; the exchanger was found almost fully
+clogged ("coffee-coloured" water) and the ionisation electrode slightly misaligned; cleaning + flushing +
+treated water fixed it. Note their symptom differed (stuck at 64 % for minutes, typical of an ionisation
+problem: at 27 % output the ionisation current should be > 50).
+
+**Discriminating test, no change needed:** watch a hot-water (tank) charge. The diverter valve then sends
+the water through a short open circuit that does not depend on the mixer. Long flames with a fast-reacting
+flow sensor → exchanger fine → hypothesis A. Short 15 s flames during tank charging too → hypothesis B.
+
+Firmware: the burner controller (TN 410) reads **2.20** here. No Wolf release note found that changes
+soft-start or gradient monitoring; a firmware update cannot create flow, so it is not the primary fix.
 
 ### Next levers, in order
 
