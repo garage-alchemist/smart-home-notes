@@ -6,7 +6,8 @@ chaudière Wolf démarre toutes les 7 minutes.*
 
 Status (03/11): **mechanism proven** (too little water flow through the boiler → safety stop after ~15 s,
 no anti-cycling lock). **HG16 = 80 % helps only partly** (2 good cycles out of 9). Root cause of the low
-flow still open: closed mixer valve without bypass *or* a fouled heat exchanger. Updated as data comes in.
+flow: **heating side** (mixer valve nearly closed, no bypass) — a hot-water charge on the same boiler ran a
+single 13.5 min flame with high flow, so the exchanger itself is fine. Updated as data comes in.
 
 ## TL;DR
 
@@ -135,7 +136,7 @@ Why it works: more flow through the exchanger carries the soft-start heat away i
 build up in 1.3 L of water. Why it may not be enough: if the mixer valve is nearly closed and the
 hydraulics have no bypass/low-loss header, extra pump head only buys a little extra flow.
 
-### Where is the flow blocked? (open)
+### Where is the flow blocked?
 
 | Hypothesis | Where | Remedy |
 |---|---|---|
@@ -151,6 +152,12 @@ problem: at 27 % output the ionisation current should be > 50).
 **Discriminating test, no change needed:** watch a hot-water (tank) charge. The diverter valve then sends
 the water through a short open circuit that does not depend on the mixer. Long flames with a fast-reacting
 flow sensor → exchanger fine → hypothesis A. Short 15 s flames during tank charging too → hypothesis B.
+
+**Result of that test (03/11, 11:27–11:41):** one single burner start, **one continuous flame of 13.5 min**
+(soft-start → *Ein* in ~12 s), flow sensor reacting within seconds, flow−return ΔT only **3–6 K** at the
+same 80 % pump command (vs ~16 K on the heating side) → several times more flow. **The exchanger is fine;
+the restriction is on the heating side (hypothesis A).** Next: bypass / differential-pressure valve with the
+installer, or block the burner via E1 while the slab takes little water.
 
 Firmware: the burner controller (TN 410) reads **2.20** here. No Wolf release note found that changes
 soft-start or gradient monitoring; a firmware update cannot create flow, so it is not the primary fix.
