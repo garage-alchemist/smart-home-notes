@@ -20,7 +20,7 @@ Status: **diagnosis proven (03/11), fix (HG16) under evaluation.** Updated as da
   normal control shutdown, so **HG09 never applies**. This is why raising HG09 changed nothing.
 - Fix under test: **HG16 (minimum boiler pump speed) 50 % → 80 %**. First cycles afterwards: flames of
   40 s and 3 min 50 s ending with a normal control stop **followed by a real 15 min lock**, instead of
-  15 s safety stops. One cycle in three was still a 15 s stop in the first hour → evaluation continues.
+  15 s safety stops. In the first 45 min, 2 of 4 cycles were still 15 s stops → evaluation continues.
 
 ## The system
 
@@ -110,7 +110,8 @@ No error code on the bus (E000). A 15 s flame is too short for the 3–4 s polli
 |---|---|---|---|
 | 09:49 | ~40 s, flow sensor rising *during* the flame | control stop at ~50 °C (setpoint + HG01) | **Taktsperre exactly 15:01** |
 | 10:05 | ~15 s | safety-type stop | Aus (no lock) |
-| 10:12 | **~3 min 50 s**, reached *Ein* (modulating) | control stop | Taktsperre |
+| 10:12 | **~3 min 50 s**, reached *Ein* (modulating) | control stop | Taktsperre (15:02) |
+| 10:31 | ~16 s | safety-type stop | Aus (no lock) |
 
 The same fix is reported in a [haustechnikdialog thread](https://www.haustechnikdialog.de/Forum/t/260260/Wolf-CGB-2-14-taktet-58-800-x-in-26-000-Std-)
 (CGB-2-14, underfloor heating, 58 800 starts in 3 years): HG16 55 % still dropped into the lock after

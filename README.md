@@ -7,6 +7,17 @@ tested answer instead of a forum thread that ends without a solution.
 Everything here was tried on real hardware. Each page says what is **proven**, what is **probable** and
 what is still **open**. Dates are given so you can judge how current a finding is.
 
+## Made with AI — which is why we share
+
+These findings were made **working together with AI assistants**. They could only find answers because
+other people had published theirs: a GitHub repo with Wolf telegram numbers, an open-source parameter
+database, a forum user who came back to post what fixed his boiler. Shared knowledge is what makes an AI
+search succeed; unshared knowledge is invisible to it. So we publish ours — numbers, dates and failures
+included. More in [ai-agent.md](ai-agent.md).
+
+*FR — Trouvé en travaillant avec l'IA, grâce à ce que d'autres avaient partagé : nous partageons à notre tour.*
+*DE — Mit KI erarbeitet, dank dem, was andere geteilt haben — deshalb teilen wir weiter.*
+
 ## The house in one paragraph
 
 Low-energy detached house (energy class A, built ~2020, ~150 m²) in Western Europe. Underfloor heating in
@@ -27,6 +38,9 @@ a small AI agent on a separate server adjusts heating, shutters and EV charging.
 | Thermal behaviour & sensors | [thermal-and-sensors.md](thermal-and-sensors.md) | Measured time constants of a heavy-slab house, outdoor-sensor sun bias, open-window detection without contacts. |
 | EV charging & energy | [ev-and-energy.md](ev-and-energy.md) | Why a charger with a site power cap pauses ("suspended EVSE") instead of slowing down; 6 A/phase floor; a car-climate API whose "fan speed" is really a mode byte. |
 | Ventilation (MVHR) | [ventilation-komfovent.md](ventilation-komfovent.md) | Filter clogging stuck at 100 % + permanent W1 alarm = filter calibration never run. |
+| Garage parking assistant (DIY) | [garage-parking-sensor.md](garage-parking-sensor.md) | ESP32 + waterproof ultrasonic + 16×16 LED panel: arrow → STOP, two-supply wiring, firmware that does not depend on HA automations. |
+| The Home Assistant installation | [home-assistant-setup.md](home-assistant-setup.md) | Host, Apps, integrations, dashboard, InfluxDB 1→2 migration with a local App. |
+| AI agent & method | [ai-agent.md](ai-agent.md) | An LLM agent running heating/ventilation/EV with hard guardrails, and how the AI-assisted investigations are run. |
 
 ## Credits
 
