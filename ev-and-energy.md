@@ -68,3 +68,44 @@ the battery tested if it rests below ~12 V (reported). Owner threads on the same
 [MGS5 12 Volt Battery Issues](https://www.mgevs.com/threads/mgs5-12-volt-battery-issues.24881/),
 [12V battery drained in 48 hours whilst locked](https://www.mgevs.com/threads/12v-battery-drained-in-48-hours-whilst-locked.24616/),
 [saic-python-client-ng #30](https://github.com/SAIC-iSmart-API/saic-python-client-ng/issues/30).
+
+## "Which car is in the garage?" — don't trust parked-car telemetry (Nov 2026)
+
+*Keywords: two EVs one garage, preconditioning automation, MG S5 exterior temperature stale, SAIC GPS frozen,
+car cloud API mileage polling, pre-heat the car parked outside.*
+
+Goal: pre-heat/defrost only the car parked **outside** on cold mornings (one garage space, two cars, a
+distance sensor that only says "space occupied").
+
+What did **not** work:
+- **Car-reported exterior temperature (MG S5 / SAIC):** it freezes at the last value measured while driving.
+  Parked in a 15 °C garage, the car kept reporting **0.0 °C** all night, even right after a forced data refresh
+  in the morning. The logic "car colder than the garage → it's outside" therefore always says "outside".
+- **Car GPS (MG S5):** frozen at the last fix before entering the garage — it placed the car **2.8 km** away.
+- **Arrival order from odometer changes:** cloud integrations push the odometer only every ~15 min while
+  driving. On 3 of 7 evenings both cars arrived within that window; once it would have picked the wrong car.
+- **The other car's GPS when parked:** all positions within 2–8 m of the house centre — the same as GPS noise, so garage
+  vs. driveway can't be separated.
+- "Plugged in" is not "in the garage": the charging cable reaches the driveway.
+
+What we do now: **pre-heat both cars** below 10 °C (defrost below 3 °C). The one in the garage heats for
+nothing (a few tenths of a kWh); no car is ever left frozen, and the MG no longer needs a morning wake-up
+poll (good for its 12 V). Presence check for the MG: GPS "home" **or** charging cable connected **or** last
+known position < 10 km (because the GPS freezes). Reliable identification would need a plate-reading camera
+or a per-car BLE tag.
+
+## One charger, two cars: identifying the car on the cable
+
+Each car only reports "a cable is connected" — also when it is charging at a public station. To pick the
+right car's state of charge for the overnight ramp, our agent compares the power the car reports with the
+power the charger measures, and drops a car whose numbers don't match (case seen: one car at 9.9 kW on a
+public charger while the other drew 4.1 kW at home).
+
+Pitfall: the car's reported power comes from its cloud and can be **over an hour old** (3.4 kW reported while
+the charger delivered 5.9 kW). With a 2 kW tolerance, the only car plugged in was rejected every other cycle,
+and the ramp fell back to the 6 A default → current see-sawing 6 ↔ 13 A every 20 min. Fix: 4 kW tolerance
+when only one car reports a cable, 2 kW when both do.
+
+Also worth doing the arithmetic before blaming the ramp: with a 7 kW site cap and the house drawing its
+share, the car got at most **~5.9 kW**; 6 h of off-peak × 5.9 kW ≈ 35 kWh at the wall ≈ 32 kWh in the battery.
+From 33 % on a 77 kWh battery that is ~74–75 % — the 80 % target was out of reach whatever the control did.

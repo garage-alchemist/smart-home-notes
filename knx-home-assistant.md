@@ -94,3 +94,17 @@ Diagnostics traps:
 - "KNX bus did not respond in time" at startup is normal for command GAs without the read flag.
 - To know whether something moved, use `last_changed`, never `last_updated` (attribute refreshes and KNX
   resyncs update the latter).
+
+## 8. Pushing a room thermostat way up can leave its valve nearly shut for hours (MDT, observed)
+
+*Keywords: MDT AKH PI controller, Stellgröße fällt, valve closes after setpoint change, integral wind-down.*
+
+Observed (Nov 2026): a cold room's valve had been at **100 %** for days. Someone pressed "+" up to 26 °C;
+the room didn't warm faster (the valve was already fully open). When the setpoint went back to 21.5 °C the
+valve dropped to **10–16 %** within minutes and stayed there for hours, while the room was still **below**
+setpoint. It only climbed back to 80–100 % overnight. Probable cause: the actuator's PI controller —
+the integral part that had kept the valve open is discharged/reset by the large setpoint step. Not confirmed
+in the MDT documentation.
+
+Lesson: if a room is cold with its valve already at 100 %, don't raise its setpoint — the fix is warmer
+supply water (heating curve / mixer correction) or hydraulic balancing.

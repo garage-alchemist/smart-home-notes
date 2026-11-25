@@ -4,10 +4,12 @@
 wird ignoriert, taktet, Softstart, Gradientenüberwachung, HG09, HG16, HG39, short cycling, court-cycle,
 chaudière Wolf démarre toutes les 7 minutes.*
 
-Status (03/11): **mechanism proven** (too little water flow through the boiler → safety stop after ~15 s,
-no anti-cycling lock). **HG16 = 80 % helps only partly** (2 good cycles out of 9). Root cause of the low
-flow: **heating side** (mixer valve nearly closed, no bypass) — a hot-water charge on the same boiler ran a
-single 13.5 min flame with high flow, so the exchanger itself is fine. Updated as data comes in.
+Status (25/11): **mechanism proven** (too little water flow through the boiler → safety stop after ~15 s,
+no anti-cycling lock). Root cause of the low flow: **heating side** (mixer valve nearly closed, no bypass) —
+a hot-water charge on the same boiler ran a single 13.5 min flame, so the exchanger itself is fine.
+**Working fix since 22/11: block the burner through input E1 on a 45/30 min cadence** → starts per day
+roughly halved (≈ 90 → 40–50) and flames ~2–10× longer, with no measurable comfort loss
+(see "Step 5"). Updated as data comes in.
 
 ## TL;DR
 
@@ -170,6 +172,67 @@ soft-start or gradient monitoring; a firmware update cannot create flow, so it i
    do not go below factory without a combustion (CO) check.
 4. Use input E1 (HG13) to block the burner when the sum of room-valve openings is low —
    reported to cut starts from 2.4/h to 0.4–0.8/h in the same thread.
+
+## Step 5 — blocking the burner through input E1 (results, Nov 2026)
+
+*Keywords: Wolf E1 Raumthermostat Eingang, HG13 = 1, Brenner sperren, Taktsperre extern, burner block
+contact, court-cycle plancher chauffant, Mischer zu.*
+
+Idea: since the boiler cannot run long flames while the slab takes little water, **don't let it try**.
+Open input E1 for 45 min, close it for 30 min, and let the slab's thermal mass (time constant ≈ 28 h)
+ride through the pause. The boiler then starts once per free phase, with the mixer opened wider, and
+burns long instead of 15 s safety stops.
+
+Hardware / settings:
+- **HG13 (E1 function) = 1** ("room thermostat": E1 open = heating blocked, hot water still allowed,
+  frost protection never blocked). Written over eBUS (TN 2651, see the CRC section). Verified: with E1
+  open the boiler goes to standby within ~30 s (setpoint 5 °C, boiler pump 0 %, mixer pump off).
+- E1 is a **low-voltage, potential-free input**: drive it with a dry contact only. Here: the **NC contact**
+  of a small relay (relay unpowered = E1 closed = normal heating, so a dead controller fails safe) in
+  series with a **surface thermostat on the floor flow pipe** that opens on over-temperature — the
+  maximum-temperature protection for the slab that the MM manual requires, which this installation
+  never had (only a bridge). Never put mains or any external voltage on E1.
+- The relay is switched by a KNX actuator channel, commanded from Home Assistant.
+
+Control logic (runs every minute):
+- 75 min clock cycle: 45 min blocked, 30 min free.
+- **Room guard:** no new block if any room is > 0.5 K under setpoint; an ongoing block is released at
+  once if a room drops > 0.7 K under setpoint.
+- No block below **−3 °C outdoor** (and none above 16 °C, where the boiler doesn't heat anyway).
+- Hard cap 50 min blocked in a row; the command is re-sent every 10 min (the actuator's fail-safe falls
+  back after 30 min without a telegram).
+
+Results (same house, burner starts per day from the boiler's counter HG91):
+
+| Day | Outdoor mean | E1 blocked | Starts/day |
+|---|---|---|---|
+| 19/11 (before) | 9.3 °C | 0 min | 97 |
+| 20/11 (before) | 8.3 °C | 0 min | 92 |
+| 21/11 (before) | 3.1 °C | 0 min | 81 |
+| 22/11 (from 09:10) | 2.3 °C | 331 min | 67 |
+| 23/11 | 0.2 °C | 571 min | 43 |
+| 24/11 | −0.2 °C | 509 min | 52 |
+| 25/11 (to 18 h) | 1.2 °C | 275 min | 37 |
+
+- Burner time per start: **~12 min** on a blocked day vs **1.3–6.8 min** before.
+- Comfort: room temperatures between 22:00 and 07:00 over several nights were the same with and without
+  blocking. The guard, not the cadence, decides on cold days: the coldest room keeps E1 free.
+- **Gas:** burner hours per degree-day (hot water removed) 0.50 before vs 0.48 with E1 — **no measurable
+  saving after 3 days**, within the noise. The win is wear (ignitions, electrode, fan), not m³. This
+  matches the literature on condensing boilers: longer cycles mostly reduce wear; fuel gains are a few % at most.
+
+## BM-2 "mixer valve" correction is local only (not on eBUS)
+
+On the BM-2 screen "Vanne mélangeuse / Mischer" (key 2, scale −4…+4) each step shifts the mixer-circuit
+setpoint (`mischersolltemp` on the MM module): measured **+1.6 K** for 0 → +1 at 1.3 °C outdoor and
+**+1.3 K** for +1 → +2 at 1.1 °C. An ebusd `grab` during the change showed **no write telegram**: the value
+is internal to the BM-2, so it cannot be set from Home Assistant — do it by hand.
+Use it when one room is under setpoint with its valve already at 100 % (here a north-west room with no sun);
+raising that room's thermostat setpoint does nothing more.
+
+Also normal, but confusing right after such a change: during a **hot-water tank charge** (boiler at
+63–65 °C here, ~20 min) the mixer circuit gets nothing, so the floor flow stays at the old temperature
+until the charge ends.
 
 ## Writing a parameter (5023 + CRC)
 
