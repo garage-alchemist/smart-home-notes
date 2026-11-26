@@ -43,3 +43,9 @@ Lessons from backtests:
 - "Closed again" = the room **rises** 0.3 °C from its minimum; a plateau proves nothing (warm slab).
 - Some windows are physically undetectable this way (room stable at setpoint, valve open). Only contacts
   would see them.
+- **Showers fool it.** Steam pushes a bathroom sensor up by ~1 °C (21.3 → 22.3 °C in 12 min); the decay
+  back to setpoint runs at −1.2 °C/h with the valve open, i.e. a textbook "open window". The room then
+  sits at setpoint with heating cut, never "rises" again, and gets 3 h of false reminders. Fix: only
+  suspend when the room is at least 0.3 °C **below** its setpoint. Replayed on a week of detections,
+  this removed only the two bathroom false positives; real morning airing (bedroom 21.3 → 20.8 °C)
+  is still caught.
