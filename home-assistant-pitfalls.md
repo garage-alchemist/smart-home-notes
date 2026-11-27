@@ -69,3 +69,13 @@ The UI wizard chose the charger's own meter as grid import and an "always on" se
   boiler cycle that was the polling interval).
 - A value that never moves for weeks is a sentinel, not a measurement.
 - "Writes still work after the upgrade" proves nothing if the old and new config hold the same value.
+
+## A low-battery alert can never fire on a dying cell
+
+A battery Shelly H&T (Gen1) reported 87 % for weeks, then 45 % in a single step, then went
+`unavailable` a day later. It never crossed the 15 % threshold, so the "battery below 15 %"
+automation never ran and the sensor was silent for two days before anyone noticed. Lithium cells
+collapse instead of fading. Watch for `unavailable` instead: alert after 6 h, plus a daily 9:00
+reminder while it lasts (the daily trigger also covers a sensor that was already offline when the
+automation was created). Over 30 days none of the three Shelly sensors had gone `unavailable` in
+normal operation, so this does not produce false alerts.

@@ -49,3 +49,10 @@ Lessons from backtests:
   suspend when the room is at least 0.3 °C **below** its setpoint. Replayed on a week of detections,
   this removed only the two bathroom false positives; real morning airing (bedroom 21.3 → 20.8 °C)
   is still caught.
+- **So does the sun.** A south-west bedroom warmed by the afternoon sun to 24–25 °C (setpoint 21.5)
+  then cooled by ≥0.7 °C in 10 min once the sun left: "open window", heating cut for 30 min, four
+  afternoons out of ten. Same fix, applied to the Home Assistant automation as well as the agent.
+  Replayed on 30 days (38 detections): the 4 sunny ones, 6 showers and 2 others disappear; all 13
+  morning bedroom airings are kept. Trade-off: a real window opened in a room that is *above*
+  setpoint is not cut on the first trigger, but the agent re-checks every cycle and catches it
+  once the room falls 0.3 °C below setpoint.
