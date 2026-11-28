@@ -109,3 +109,29 @@ when only one car reports a cable, 2 kW when both do.
 Also worth doing the arithmetic before blaming the ramp: with a 7 kW site cap and the house drawing its
 share, the car got at most **~5.9 kW**; 6 h of off-peak × 5.9 kW ≈ 35 kWh at the wall ≈ 32 kWh in the battery.
 From 33 % on a 77 kWh battery that is ~74–75 % — the 80 % target was out of reach whatever the control did.
+
+## One month of smart-meter data: what actually costs money (Nov 2026)
+
+*Keywords: smart-meter data hub export, 15-minute load profile, Grundlast, talon de consommation, standby power,
+heat pump circulation pump watts, VMC/MVHR power, time-of-use EV charging share.*
+
+30 days (29/10–27/11) from the grid operator's 15-min export, house with a gas boiler and two EVs on one charger:
+
+| Use | Energy | Off-peak | Normal | Peak |
+|---|---|---|---|---|
+| EV charging (15-min power > 3.3 kW, minus 0.4 kW house) | ≈ 543 kWh | **69 %** | 23 % | 8 % |
+| House without EVs | ≈ 470 kWh (15.7 kWh/day) | 25 % | 40 % | 35 % |
+
+- **Reference power:** the operator moved the house from 3 to 7 kW automatically (yearly review). With the
+  charger capped near 7 kW the month's highest 15-min value was 6.43 kW → **zero excess-power charge**.
+- **EV timing is nearly solved:** the 166 kWh charged outside off-peak cost ~7.6 € more than off-peak would have.
+- **The night baseload is the real lever:** 02:00–05:00 the house never drops below **0.25–0.31 kW**
+  (median 0.30). That is ~7 kWh/day — almost half the non-EV use — ≈ 2,600 kWh/year. Every 100 W removed
+  around the clock saves ~875 kWh/year.
+- **It is not the ventilation or the heating pumps.** The MVHR unit draws 34 W at night (its own power
+  reading). The heating pumps were measured by accident: with the boiler input set to "room thermostat",
+  each burner block stops both the boiler pump and the mixer-circuit pump. Comparing night power with
+  blocks vs without (5 nights, EV charging excluded, ~400–500 min each): 10th percentile 277 vs 281 W,
+  median 315 vs 319 W. **Both high-efficiency pumps together ≈ 5–10 W.** The remaining ~200 W is
+  elsewhere (network/IT, fridge, standby loads) — next step is a breaker-by-breaker night test.
+- Pitfall: the gas operator's **hourly** export labels the unit "kWh" but the values are **m³** (they sum to the daily m³ export).
