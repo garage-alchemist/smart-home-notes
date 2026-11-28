@@ -9,7 +9,8 @@ no anti-cycling lock). Root cause of the low flow: **heating side** (mixer valve
 a hot-water charge on the same boiler ran a single 13.5 min flame, so the exchanger itself is fine.
 **Working fix since 22/11: block the burner through input E1 on a 45/30 min cadence** → starts per day
 roughly halved (≈ 90 → 40–50) and flames ~2–10× longer, with no measurable comfort loss
-(see "Step 5"). Updated as data comes in.
+(see "Step 5"). **Since 28/11 E1 is set to "burner block" (BOB)**, so the floor pumps keep running
+during blocks (see "Step 6"). Updated as data comes in.
 
 ## TL;DR
 
@@ -220,6 +221,59 @@ Results (same house, burner starts per day from the boiler's counter HG91):
 - **Gas:** burner hours per degree-day (hot water removed) 0.50 before vs 0.48 with E1 — **no measurable
   saving after 3 days**, within the noise. The win is wear (ignitions, electrode, fan), not m³. This
   matches the literature on condensing boilers: longer cycles mostly reduce wear; fuel gains are a few % at most.
+
+## Step 6 — E1 as "burner block" (BOB) instead of "room thermostat" (28/11)
+
+*Keywords: Wolf HG13 BOB, Betrieb ohne Brenner, Brennersperre, « Bloc brû. », fonctionnement sans brûleur,
+blocage du brûleur, Mischerkreispumpe läuft weiter, burner block keep pumps running.*
+
+Why: with HG13 = "room thermostat" (Step 5), an open E1 puts the boiler in **summer mode** — and the MM
+module then **stops the mixer-circuit pump**. Here that meant ~9 h a day of blocks with no water moving
+in the slab, and it cancelled most of the BM-2 mixer correction (floor flow stayed ~28 °C).
+
+HG13 has another option, missed at first because only the setting copied from another project was read:
+**BOB, "operation without burner"**. Per the CGB-2 manual: *E1 closed = burner blocked; heating pump,
+3-way valve and tank charging pump keep running normally; burner still allowed for chimney-sweep and
+frost protection; E1 open = burner released.*
+
+How it shows up — **don't go by the number**:
+- On the BM-2 (French UI) the list reads: *Sond amb, ECS, Samb/ECS, Zirkomat, **Bloc brû.**, Clpt gaz,
+  OWH, Externe, SEE sans coup*. "Bloc brû." is BOB.
+- Read back over eBUS (TN 2651) it is **5**. A CGU-2 manual numbers BOB as **8** — writing 8 blindly would
+  have selected another function. Set it on the display, then read it back.
+
+Wiring change (logic is inverted, so both contacts change):
+- Relay: **NO contact** instead of NC → relay unpowered = E1 open = burner free. A dead controller still fails safe.
+- Floor safety thermostat: the contact that **closes on rising temperature**, now **in parallel** with the
+  relay (closing either one blocks the burner). In series, an over-temperature would have *released* the burner.
+- New weak point: a broken common wire to E1 silences both relay and thermostat, and nothing shows it.
+  Covered by a software check (below) plus a monthly test (E1 wires off, thermostat at minimum → contact must close).
+
+Verified on the bus (relay closed at 17:41, released at 18:00):
+
+| Time | Burner status (TN 10068) | Mode | Mixer pump | Floor flow |
+|---|---|---|---|---|
+| 17:42:54 | **Betrieb_ohne_Brenner** | Heizbetrieb | on | 24.3 °C |
+| 17:46:37 | Betrieb_ohne_Brenner | Heizbetrieb | on | 25.0 °C (residual heat, no gas) |
+| 18:00:12 | Aus (relay released) | Heizbetrieb | on | 25.0 °C |
+| 18:01:16 → 18:04:29 | pre-purge → soft-start → **On** | Heizbetrieb | on | 35 °C |
+
+Side effects and pitfalls:
+- In BOB the burner is blocked **for hot water too**. The controller releases E1 when the tank needs a
+  charge (tank ≤ setpoint − hysteresis + 1 K, until setpoint − 0.5 K). In "room thermostat" mode that rule
+  was useless (hot water still ran) and only shortened blocks — gate it on the HG13 value.
+- **Between rewiring and changing HG13, the logic is inverted**: relay at rest = E1 open = summer mode =
+  no heating. Change HG13 right after powering the boiler back on.
+- Powering the boiler off for the wiring takes the eBUS down ("signal lost" in ebusd) until it is back on.
+- The burner status was **never polled**: its CSV line was a plain `r`, so Home Assistant showed "Aus" for
+  two days while the burner ran. Changing it to `r9` in `08..hc.csv` + `ebusctl reload` (rescan ~1 min)
+  gives a read every 3–6 min. The controller now alerts if the relay is closed and the status shows
+  Zuenden/Softstart/Ein for ≥ 3 min (once per block, BOB only).
+
+Gain: what BOB adds over Step 5 is **circulation during blocks** — the slab keeps taking heat, including
+what is left in the boiler after a hot-water charge, and the mixer correction is no longer cancelled.
+Starts/day were already roughly halved by Step 5 (≈ 90–110 → 43–52, partly also colder weather). Gas: not
+measured yet for BOB; Step 5 showed no measurable m³ saving. Results to follow after several days.
 
 ## BM-2 "mixer valve" correction is local only (not on eBUS)
 
