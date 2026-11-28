@@ -219,7 +219,10 @@ Results (same house, burner starts per day from the boiler's counter HG91):
 - Comfort: room temperatures between 22:00 and 07:00 over several nights were the same with and without
   blocking. The guard, not the cadence, decides on cold days: the coldest room keeps E1 free.
 - **Gas:** burner hours per degree-day (hot water removed) 0.50 before vs 0.48 with E1 — **no measurable
-  saving after 3 days**, within the noise. The win is wear (ignitions, electrode, fan), not m³. This
+  saving after 3 days**, within the noise. Confirmed with the gas meter's daily export (22–27/11, 6 days,
+  degree-days from the grid operator's temperature): 33.1 m³ measured vs 34.4 m³ predicted by a
+  m³-vs-degree-day fit on the 15 days before (−4 %), while single days scatter by ±16 % (one day without
+  blocking came out −17 %). So: no saving you can claim. The win is wear (ignitions, electrode, fan), not m³. This
   matches the literature on condensing boilers: longer cycles mostly reduce wear; fuel gains are a few % at most.
 
 ## Step 6 — E1 as "burner block" (BOB) instead of "room thermostat" (28/11)
